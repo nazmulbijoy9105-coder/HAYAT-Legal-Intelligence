@@ -3,14 +3,81 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// --- Knowledge Graph Types ---
+// --- Decomposed Case Model (Westlaw / SCC Online / DLR equivalent) ---
+export interface DecomposedCase {
+  id: string;
+  title: string;
+  court: string;
+  country: string;
+  bench: string[];
+  decisionDate: string;
+  caseType: string;
+  status: string;
+  citation: string;
+  parties: string;
+  subject: string;
+  proceduralHistory: {
+    id: string;
+    stage: string;
+    outcome: string;
+    arrow?: boolean;
+  }[];
+  facts: {
+    id: string;
+    text: string;
+  }[];
+  issues: {
+    id: string;
+    text: string;
+    answer: 'Yes' | 'No' | 'Partially' | 'N/A';
+    elaborated: string;
+  }[];
+  statutes: {
+    id: string;
+    actName: string;
+    section: string;
+    role: string;
+    temporalStatus: 'Valid' | 'Amended' | 'Repealed';
+  }[];
+  principles: {
+    id: string;
+    text: string;
+  }[];
+  ratioDecidendi: {
+    id: string;
+    text: string;
+  }[];
+  directions: {
+    id: string;
+    step: string;
+    entity: string;
+    action: string;
+    timeline?: string;
+  }[];
+  paragraphs: {
+    id: string;
+    index: number;
+    category: 'Metadata' | 'Facts' | 'Video recording' | 'Law' | 'Reasoning' | 'Directions' | 'Citations';
+    text: string;
+  }[];
+  knowledgeGraph: {
+    nodes: { id: string; label: string; type: 'case' | 'statute' | 'section' | 'principle' | 'judge' | 'party' | 'paragraph' }[];
+    links: { source: string; target: string; label: string }[];
+  };
+  originalPdfUrl?: string;
+  aiSummary: {
+    facts: string;
+    issue: string;
+    held: string;
+    keyPrinciple: string;
+  };
+}
+
+// Keep older compatibility interfaces to prevent any compilation breakages in other files if they imports them
 export interface GraphNode {
   id: string;
   label: string;
   type: 'court' | 'judge' | 'case' | 'citation' | 'act' | 'section';
-  details?: Record<string, any>;
-  x?: number;
-  y?: number;
 }
 
 export interface GraphLink {
@@ -19,7 +86,6 @@ export interface GraphLink {
   label: string;
 }
 
-// --- Legal Search & Citations ---
 export interface LegalDocument {
   id: string;
   title: string;
@@ -36,82 +102,3 @@ export interface LegalDocument {
   vectorScore?: number;
 }
 
-export interface CitationResolution {
-  citation: string;
-  resolved: boolean;
-  caseTitle?: string;
-  court?: string;
-  date?: string;
-  judges?: string[];
-  actsApplied?: string[];
-  sectionsApplied?: string[];
-  linkId?: string;
-  error?: string;
-  summary?: string;
-}
-
-// --- Deterministic Reasoning (ILRMF) Engine ---
-export interface ILRMFStep {
-  name: string;
-  key: 'fact' | 'issue' | 'rule' | 'temporal' | 'exception' | 'application' | 'conclusion' | 'citation' | 'confidence';
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  title: string;
-  description: string;
-  output?: string;
-  evidence?: {
-    text: string;
-    source: string;
-    page?: number;
-    bbox?: [number, number, number, number]; // [x, y, w, h] in percentages
-  }[];
-}
-
-export interface ILRMFAnalysis {
-  factsSummary: string;
-  issues: string[];
-  applicableRules: {
-    act: string;
-    section: string;
-    text: string;
-    temporalStatus: string; // "Valid", "Amended", "Repealed"
-  }[];
-  temporalAnalysis: string;
-  exceptionAnalysis: string;
-  applicationText: string;
-  conclusionText: string;
-  citationsVerified: {
-    citation: string;
-    caseName: string;
-    relevance: string;
-    verified: boolean;
-  }[];
-  confidenceScore: number; // 0 to 100
-  auditExplanation: string;
-}
-
-// --- Document Ingestion Pipeline ---
-export interface OCRBoundingBox {
-  id: string;
-  text: string;
-  confidence: number;
-  type: 'header' | 'footer' | 'paragraph' | 'table' | 'footnote' | 'heading' | 'commentary';
-  bbox: [number, number, number, number]; // [x, y, w, h] as percentages
-  readingOrder: number;
-}
-
-export interface IngestionMetrics {
-  fileSize: string;
-  mimeType: string;
-  magicNumber: string;
-  virusScan: 'Clean' | 'Infected';
-  sha256: string;
-  uuid: string;
-  qualityScore: number;
-  blurLevel: number;
-  brightness: number;
-  dpi: number;
-  deskewAngle: number;
-  ocrConfidence: number;
-  readingOrderChecked: boolean;
-  copyrightFlags: string[];
-}

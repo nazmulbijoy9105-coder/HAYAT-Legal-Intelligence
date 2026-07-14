@@ -47,6 +47,7 @@ export interface CitationResolution {
   sectionsApplied?: string[];
   linkId?: string;
   error?: string;
+  summary?: string;
 }
 
 // --- Deterministic Reasoning (ILRMF) Engine ---

@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Search, Filter, Hash, Sparkles, BookOpen, ChevronRight, Sliders, AlertCircle, Bookmark, Globe, ArrowRight } from 'lucide-react';
+import { Search, Filter, Hash, Sparkles, BookOpen, ChevronRight, Sliders, AlertCircle, Bookmark, Globe, ArrowRight, Network } from 'lucide-react';
 import { LegalDocument, CitationResolution } from '../types';
 
 export function LegalResearch() {
@@ -401,7 +401,19 @@ export function LegalResearch() {
                       </div>
                     </div>
                   )}
+                  
+                  {resolvedCitation.summary && (
+                    <div className="mt-2.5 pt-2.5 border-t border-white/5">
+                      <span className="text-slate-500 font-mono text-[9px] block uppercase tracking-wide">Precedent Holding:</span>
+                      <p className="font-sans text-[11px] text-slate-300 leading-relaxed italic">
+                        "{resolvedCitation.summary}"
+                      </p>
+                    </div>
+                  )}
                 </div>
+
+                {/* Knowledge Graph reference highlights feature */}
+                <CitationGraphHighlight resolved={resolvedCitation} />
               </div>
             ) : (
               <div className="p-3 bg-rose-500/10 rounded-xl border border-rose-500/20 text-xs text-rose-300 flex items-start gap-2">
@@ -414,6 +426,246 @@ export function LegalResearch() {
             )}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+interface CitationGraphHighlightProps {
+  resolved: CitationResolution;
+}
+
+export function CitationGraphHighlight({ resolved }: CitationGraphHighlightProps) {
+  const [hoveredNode, setHoveredNode] = useState<'case' | 'court' | 'judge' | 'act' | 'section'>('case');
+
+  const courtName = resolved.court || 'Supreme Court';
+  const judgeName = resolved.judges?.[0] || 'Coram Bench';
+  const actName = resolved.actsApplied?.[0] || 'Relevant Act';
+  const secName = resolved.sectionsApplied?.[0] || 'Relevant Section';
+
+  const getNodeInfo = () => {
+    switch (hoveredNode) {
+      case 'case':
+        return {
+          title: resolved.citation,
+          type: 'Precedent Case Node',
+          relation: 'Central Focus Entity',
+          desc: resolved.caseTitle || 'The active legal precedent query context.',
+          color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/5'
+        };
+      case 'court':
+        return {
+          title: courtName,
+          type: 'Court Jurisdictional Node',
+          relation: 'DECIDED_BY_COURT',
+          desc: 'The authoritative judicial body that handed down the binding decision.',
+          color: 'text-blue-400 border-blue-500/30 bg-blue-500/5'
+        };
+      case 'judge':
+        return {
+          title: judgeName,
+          type: 'Judicial Coram Node',
+          relation: 'DELIVERED_BY',
+          desc: 'The presiding judge or bench members who wrote and pronounced the decision.',
+          color: 'text-violet-400 border-violet-500/30 bg-violet-500/5'
+        };
+      case 'act':
+        return {
+          title: actName,
+          type: 'Statutory Act Node',
+          relation: 'INTERPRETED',
+          desc: 'The substantive or procedural legislative enactment reviewed in the case.',
+          color: 'text-amber-400 border-amber-500/30 bg-amber-500/5'
+        };
+      case 'section':
+        return {
+          title: secName,
+          type: 'Provision Section Node',
+          relation: 'APPLIED_PROVISION',
+          desc: 'The specific operational rule or article text interpreted by the judges.',
+          color: 'text-rose-400 border-rose-500/30 bg-rose-500/5'
+        };
+    }
+  };
+
+  const currentInfo = getNodeInfo();
+
+  return (
+    <div className="border-t border-white/10 pt-4 mt-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-mono font-bold uppercase tracking-wide text-slate-400 flex items-center gap-1.5">
+          <Network className="w-3.5 h-3.5 text-emerald-400 animate-pulse" /> Knowledge Graph Linkages:
+        </span>
+        <span className="text-[9px] font-mono text-emerald-400/80 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+          Interactive Map
+        </span>
+      </div>
+
+      {/* SVG Subgraph Visualization */}
+      <div className="bg-slate-950/60 rounded-xl p-3 border border-white/5 relative overflow-hidden flex flex-col items-center">
+        <svg className="w-full max-w-[340px] h-[180px]" viewBox="0 0 360 200">
+          <style>{`
+            @keyframes dash {
+              to {
+                stroke-dashoffset: -20;
+              }
+            }
+            .flow-line {
+              stroke-dasharray: 6, 4;
+              animation: dash 1.5s linear infinite;
+            }
+          `}</style>
+
+          {/* Connection Lines (Background) */}
+          {/* 1. To Court */}
+          <line x1="180" y1="100" x2="60" y2="45" stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
+          <line x1="180" y1="100" x2="60" y2="45" stroke="#3b82f6" strokeWidth="1.5" className="flow-line opacity-60" />
+
+          {/* 2. To Judge */}
+          <line x1="180" y1="100" x2="300" y2="45" stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
+          <line x1="180" y1="100" x2="300" y2="45" stroke="#8b5cf6" strokeWidth="1.5" className="flow-line opacity-60" />
+
+          {/* 3. To Act */}
+          <line x1="180" y1="100" x2="60" y2="155" stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
+          <line x1="180" y1="100" x2="60" y2="155" stroke="#f59e0b" strokeWidth="1.5" className="flow-line opacity-60" />
+
+          {/* 4. To Section */}
+          <line x1="180" y1="100" x2="300" y2="155" stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
+          <line x1="180" y1="100" x2="300" y2="155" stroke="#ec4899" strokeWidth="1.5" className="flow-line opacity-60" />
+
+          {/* Relationship Labels */}
+          <text x="110" y="65" fill="#94a3b8" fontSize="8" fontFamily="monospace" textAnchor="middle" transform="rotate(-18, 110, 65)">DECIDED_BY</text>
+          <text x="250" y="65" fill="#94a3b8" fontSize="8" fontFamily="monospace" textAnchor="middle" transform="rotate(18, 250, 65)">WRITTEN_BY</text>
+          <text x="115" y="135" fill="#94a3b8" fontSize="8" fontFamily="monospace" textAnchor="middle" transform="rotate(18, 115, 135)">INTERPRETS</text>
+          <text x="245" y="135" fill="#94a3b8" fontSize="8" fontFamily="monospace" textAnchor="middle" transform="rotate(-18, 245, 135)">APPLIES</text>
+
+          {/* Central Case Node */}
+          <g
+            className="cursor-pointer group"
+            onMouseEnter={() => setHoveredNode('case')}
+          >
+            <circle
+              cx="180"
+              cy="100"
+              r="24"
+              fill="#1e293b"
+              stroke={hoveredNode === 'case' ? '#10b981' : '#334155'}
+              strokeWidth="2.5"
+              className="transition-all duration-200"
+            />
+            <circle cx="180" cy="100" r="18" fill="#10b981" className="opacity-10 group-hover:opacity-20 transition-all duration-200" />
+            <circle cx="180" cy="100" r="6" fill="#10b981" />
+            <text x="180" y="138" fill="#e2e8f0" fontSize="9" fontWeight="bold" fontFamily="sans-serif" textAnchor="middle">
+              {resolved.citation}
+            </text>
+          </g>
+
+          {/* Court Node */}
+          <g
+            className="cursor-pointer group"
+            onMouseEnter={() => setHoveredNode('court')}
+          >
+            <circle
+              cx="60"
+              cy="45"
+              r="18"
+              fill="#1e293b"
+              stroke={hoveredNode === 'court' ? '#3b82f6' : '#334155'}
+              strokeWidth="2"
+              className="transition-all duration-200"
+            />
+            <circle cx="60" cy="45" r="12" fill="#3b82f6" className="opacity-10 group-hover:opacity-20 transition-all" />
+            <path d="M57 41h6v8h-6z" fill="#3b82f6" />
+            <text x="60" y="75" fill="#94a3b8" fontSize="8" fontFamily="sans-serif" textAnchor="middle">
+              Court
+            </text>
+          </g>
+
+          {/* Judge Node */}
+          <g
+            className="cursor-pointer group"
+            onMouseEnter={() => setHoveredNode('judge')}
+          >
+            <circle
+              cx="300"
+              cy="45"
+              r="18"
+              fill="#1e293b"
+              stroke={hoveredNode === 'judge' ? '#8b5cf6' : '#334155'}
+              strokeWidth="2"
+              className="transition-all duration-200"
+            />
+            <circle cx="300" cy="45" r="12" fill="#8b5cf6" className="opacity-10 group-hover:opacity-20 transition-all" />
+            <path d="M297 41h6v8h-6z" fill="#8b5cf6" />
+            <text x="300" y="75" fill="#94a3b8" fontSize="8" fontFamily="sans-serif" textAnchor="middle">
+              Judge
+            </text>
+          </g>
+
+          {/* Act Node */}
+          <g
+            className="cursor-pointer group"
+            onMouseEnter={() => setHoveredNode('act')}
+          >
+            <circle
+              cx="60"
+              cy="155"
+              r="18"
+              fill="#1e293b"
+              stroke={hoveredNode === 'act' ? '#f59e0b' : '#334155'}
+              strokeWidth="2"
+              className="transition-all duration-200"
+            />
+            <circle cx="60" cy="155" r="12" fill="#f59e0b" className="opacity-10 group-hover:opacity-20 transition-all" />
+            <path d="M57 151h6v8h-6z" fill="#f59e0b" />
+            <text x="60" y="185" fill="#94a3b8" fontSize="8" fontFamily="sans-serif" textAnchor="middle">
+              Act
+            </text>
+          </g>
+
+          {/* Section Node */}
+          <g
+            className="cursor-pointer group"
+            onMouseEnter={() => setHoveredNode('section')}
+          >
+            <circle
+              cx="300"
+              cy="155"
+              r="18"
+              fill="#1e293b"
+              stroke={hoveredNode === 'section' ? '#ec4899' : '#334155'}
+              strokeWidth="2"
+              className="transition-all duration-200"
+            />
+            <circle cx="300" cy="155" r="12" fill="#ec4899" className="opacity-10 group-hover:opacity-20 transition-all" />
+            <path d="M297 151h6v8h-6z" fill="#ec4899" />
+            <text x="300" y="185" fill="#94a3b8" fontSize="8" fontFamily="sans-serif" textAnchor="middle">
+              Section
+            </text>
+          </g>
+        </svg>
+
+        <div className="text-center text-[10px] text-slate-400 mt-1 italic select-none">
+          Hover over nodes to inspect dynamic graph relationships
+        </div>
+      </div>
+
+      {/* Hover Information Box */}
+      <div className={`p-3 rounded-xl border text-left transition-all duration-300 ${currentInfo.color}`}>
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[10px] font-mono font-bold uppercase tracking-wider">
+            {currentInfo.type}
+          </span>
+          <span className="text-[9px] font-mono px-1.5 py-0.2 bg-white/10 rounded font-bold">
+            {currentInfo.relation}
+          </span>
+        </div>
+        <h5 className="font-sans font-bold text-xs text-white leading-tight mb-1">
+          {currentInfo.title}
+        </h5>
+        <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+          {currentInfo.desc}
+        </p>
       </div>
     </div>
   );

@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Scale, Layers, Upload, Brain, Network, Search, Briefcase, FileText, Globe, CheckCircle } from 'lucide-react';
+import { Scale, Layers, Upload, Brain, Network, Search, Briefcase, FileText, Globe, CheckCircle, Zap } from 'lucide-react';
 
 // Component Imports
 import { ArchitectureDiagram } from './components/ArchitectureDiagram';
@@ -14,11 +14,12 @@ import { DeterministicEngine } from './components/DeterministicEngine';
 import { KnowledgeGraph } from './components/KnowledgeGraph';
 import { LegalResearch } from './components/LegalResearch';
 import { PortalPerspectives } from './components/PortalPerspectives';
+import { EcosystemPortfolio } from './components/EcosystemPortfolio';
 
-type TabType = 'architecture' | 'ingestion' | 'ilrmf' | 'graph' | 'research' | 'portals';
+type TabType = 'architecture' | 'ingestion' | 'ilrmf' | 'graph' | 'research' | 'portals' | 'portfolio';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<TabType>('architecture');
+  const [activeTab, setActiveTab] = useState<TabType>('portfolio');
 
   return (
     <div className="dark min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col selection:bg-emerald-500 selection:text-slate-950 relative overflow-x-hidden">
@@ -70,6 +71,18 @@ export default function App() {
         
         {/* Navigation Tab Rails */}
         <div className="bg-slate-900/40 p-1.5 rounded-2xl border border-white/10 backdrop-blur-md shadow-lg flex flex-wrap gap-1.5 z-10 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab('portfolio')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-sans font-semibold transition-all flex items-center gap-2 border cursor-pointer ${
+              activeTab === 'portfolio'
+                ? 'bg-white/10 text-white border-white/20 shadow-xs'
+                : 'text-slate-400 hover:text-white hover:bg-white/5 border-transparent'
+            }`}
+          >
+            <Zap className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+            Ecosystem Portfolio
+          </button>
+
           <button
             onClick={() => setActiveTab('architecture')}
             className={`px-4 py-2.5 rounded-xl text-xs font-sans font-semibold transition-all flex items-center gap-2 border cursor-pointer ${
@@ -154,6 +167,7 @@ export default function App() {
               transition={{ duration: 0.2 }}
               className="w-full h-full"
             >
+              {activeTab === 'portfolio' && <EcosystemPortfolio onNavigateToTab={(tab) => setActiveTab(tab as TabType)} />}
               {activeTab === 'architecture' && <ArchitectureDiagram />}
               {activeTab === 'ingestion' && <IngestionPipeline />}
               {activeTab === 'ilrmf' && <DeterministicEngine />}

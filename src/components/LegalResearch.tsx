@@ -20,12 +20,16 @@ export function LegalResearch() {
   const [isResolving, setIsResolving] = useState(false);
   const [resolvedCitation, setResolvedCitation] = useState<CitationResolution | null>(null);
 
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [citationError, setCitationError] = useState<string | null>(null);
+
   const executeSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!searchQuery.trim()) return;
 
     setIsSearching(true);
     setExpandedConcept('');
+    setSearchError(null);
 
     try {
       const res = await fetch('/api/search', {
@@ -37,11 +41,21 @@ export function LegalResearch() {
           weights
         })
       });
-      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(`Server returned HTTP ${res.status}`);
+      }
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseErr) {
+        throw new Error("Invalid response format received from server.");
+      }
       setSearchResults(data.results || []);
       setExpandedConcept(data.conceptExpansion || '');
-    } catch (err) {
+    } catch (err: any) {
       console.error("Legal search failed:", err);
+      setSearchError(err.message || "An unexpected error occurred during search.");
     } finally {
       setIsSearching(false);
     }
@@ -53,6 +67,7 @@ export function LegalResearch() {
 
     setIsResolving(true);
     setResolvedCitation(null);
+    setCitationError(null);
 
     try {
       const res = await fetch('/api/resolve-citation', {
@@ -60,10 +75,20 @@ export function LegalResearch() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ citation: citationInput })
       });
-      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(`Server returned HTTP ${res.status}`);
+      }
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseErr) {
+        throw new Error("Invalid response format received from server.");
+      }
       setResolvedCitation(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Citation resolution failed:", err);
+      setCitationError(err.message || "An unexpected error occurred during citation resolution.");
     } finally {
       setIsResolving(false);
     }
@@ -200,6 +225,20 @@ export function LegalResearch() {
 
         {/* Search Results Display */}
         <div className="space-y-4">
+          {searchError && (
+            <div className="bg-red-500/10 p-4 rounded-xl border border-red-500/20 text-left flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="text-[10px] font-mono font-bold text-red-400 block uppercase">
+                  Search Engine Exception:
+                </span>
+                <p className="text-xs text-red-300 mt-1 font-semibold leading-relaxed font-sans">
+                  {searchError}
+                </p>
+              </div>
+            </div>
+          )}
+
           {searchResults.length > 0 ? (
             <div className="space-y-3 text-left">
               <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 px-1 uppercase tracking-wider">
@@ -304,6 +343,20 @@ export function LegalResearch() {
             </div>
           </form>
         </div>
+
+        {citationError && (
+          <div className="bg-red-500/10 p-4 rounded-xl border border-red-500/20 text-left flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+            <div>
+              <span className="text-[10px] font-mono font-bold text-red-400 block uppercase">
+                Citation Resolution Error:
+              </span>
+              <p className="text-xs text-red-300 mt-1 font-semibold leading-relaxed font-sans">
+                {citationError}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Resolved Details Outcome */}
         {resolvedCitation && (

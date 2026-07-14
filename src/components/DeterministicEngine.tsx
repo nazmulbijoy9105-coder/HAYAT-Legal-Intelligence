@@ -40,11 +40,13 @@ export function DeterministicEngine() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currentStepIdx, setCurrentStepIdx] = useState(-1);
   const [analysisResult, setAnalysisResult] = useState<ILRMFAnalysis | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'rules' | 'precedents' | 'audit'>('overview');
 
   const runILRMFEngine = async () => {
     setIsAnalyzing(true);
     setAnalysisResult(null);
+    setError(null);
     setCurrentStepIdx(0);
 
     // Step-by-step visual ticker simulation
@@ -59,10 +61,20 @@ export function DeterministicEngine() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ facts: factsInput })
       });
-      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(`Server returned HTTP ${res.status}`);
+      }
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseErr) {
+        throw new Error("Invalid response format received from server.");
+      }
       setAnalysisResult(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Analysis execution error:", err);
+      setError(err.message || "An unexpected error occurred during analysis.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -409,6 +421,22 @@ export function DeterministicEngine() {
                 </div>
               )}
             </div>
+          </div>
+        ) : error ? (
+          <div className="border border-red-500/20 bg-red-500/5 rounded-xl flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-950/20">
+            <AlertCircle className="w-12 h-12 text-red-400 mb-3" />
+            <h4 className="font-sans font-semibold text-red-200">
+              ILRMF Parsing Execution Failed
+            </h4>
+            <p className="text-xs text-red-300 max-w-sm mt-1 mb-4 font-sans leading-relaxed">
+              {error}
+            </p>
+            <button
+              onClick={runILRMFEngine}
+              className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-200 text-xs font-semibold rounded-lg transition-all border border-red-500/30 cursor-pointer"
+            >
+              Retry Parser Execution
+            </button>
           </div>
         ) : (
           <div className="border border-dashed border-white/10 rounded-xl flex-1 flex flex-col items-center justify-center p-8 text-center bg-white/5">

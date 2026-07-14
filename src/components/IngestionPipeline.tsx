@@ -14,6 +14,7 @@ export function IngestionPipeline() {
   const [fileName, setFileName] = useState('');
   const [metrics, setMetrics] = useState<IngestionMetrics | null>(null);
   const [boxes, setBoxes] = useState<OCRBoundingBox[]>([]);
+  const [error, setError] = useState<string | null>(null);
   
   // Preprocessing Toggle States
   const [deskewOn, setDeskewOn] = useState(true);
@@ -31,6 +32,7 @@ export function IngestionPipeline() {
     setActiveSample(sampleType);
     setMetrics(null);
     setBoxes([]);
+    setError(null);
 
     // Step-by-step pipeline timing simulator
     await new Promise(resolve => setTimeout(resolve, 1500));
@@ -41,12 +43,22 @@ export function IngestionPipeline() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sampleType })
       });
-      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(`Server returned HTTP ${res.status}`);
+      }
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseErr) {
+        throw new Error("Invalid response format received from server.");
+      }
       setMetrics(data.metrics);
       setBoxes(data.boxes);
       setFileName(data.fileName);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Ingestion simulation failed:", err);
+      setError(err.message || "An unexpected error occurred during ingestion.");
     } finally {
       setIsProcessing(false);
     }
@@ -357,6 +369,22 @@ export function IngestionPipeline() {
                 </div>
               )}
             </div>
+          </div>
+        ) : error ? (
+          <div className="border border-red-500/20 bg-red-500/5 rounded-xl flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-950/20">
+            <AlertTriangle className="w-12 h-12 text-red-400 mb-3" />
+            <h4 className="font-sans font-semibold text-red-200">
+              Ingestion Pipeline Execution Failed
+            </h4>
+            <p className="text-xs text-red-300 max-w-sm mt-1 mb-4 font-sans leading-relaxed">
+              {error}
+            </p>
+            <button
+              onClick={() => triggerIngest(activeSample || 'gazette')}
+              className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-200 text-xs font-semibold rounded-lg transition-all border border-red-500/30 cursor-pointer"
+            >
+              Retry Pipeline Execution
+            </button>
           </div>
         ) : (
           <div className="border border-dashed border-white/10 rounded-xl flex-1 flex flex-col items-center justify-center p-8 text-center bg-white/5">

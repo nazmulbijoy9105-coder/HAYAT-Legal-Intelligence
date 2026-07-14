@@ -9,6 +9,10 @@ import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
 import dotenv from 'dotenv';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pdf = require('pdf-parse');
+const mammoth = require('mammoth');
 import { SEEDED_STATUTES, SEEDED_PRECEDENTS } from './src/data/legalDb.js';
 
 dotenv.config();
@@ -499,6 +503,70 @@ app.post('/api/analyze', async (req, res) => {
       factsSummary: `[Backup Engine Output due to API throttling] ${facts.substring(0, 100)}...`,
       confidenceScore: Math.min(80, fallbackAnalysis.confidenceScore),
       auditExplanation: "ILRMF Safety Fallback: Local legal reference mapping completed. API connectivity exception gracefully handled."
+    });
+  }
+});
+
+// 3.4 Deep PDF & DOCX Document Extraction Route
+app.post('/api/extract-text', async (req, res) => {
+  const { fileBase64, fileName, fileType } = req.body;
+  if (!fileBase64) {
+    return res.status(400).json({ error: 'fileBase64 is required.' });
+  }
+
+  const buffer = Buffer.from(fileBase64, 'base64');
+  let extractedText = '';
+  let metadata: any = {
+    fileName: fileName || 'unnamed_document',
+    fileSize: `${(buffer.length / (1024 * 1024)).toFixed(2)} MB`,
+    wordCount: 0,
+    charCount: 0,
+    pageCount: 1,
+    paragraphCount: 0,
+    extractedAt: new Date().toISOString()
+  };
+
+  try {
+    const isPdf = fileType === 'pdf' || (fileName && fileName.toLowerCase().endsWith('.pdf'));
+    const isDocx = fileType === 'docx' || (fileName && fileName.toLowerCase().endsWith('.docx'));
+
+    if (isPdf) {
+      const data = await pdf(buffer);
+      extractedText = data.text || '';
+      metadata.pageCount = data.numpages || 1;
+      if (data.info) {
+        metadata.info = data.info;
+      }
+    } else if (isDocx) {
+      const result = await mammoth.extractRawText({ buffer });
+      extractedText = result.value || '';
+      // Estimate pages based on paragraph density
+      metadata.pageCount = Math.max(1, Math.ceil(extractedText.split('\n\n').length / 12));
+      if (result.messages && result.messages.length > 0) {
+        metadata.warnings = result.messages.map((m: any) => m.message);
+      }
+    } else {
+      extractedText = buffer.toString('utf-8');
+      metadata.pageCount = 1;
+    }
+
+    // Compute metrics
+    const cleanText = extractedText.trim();
+    const words = cleanText ? cleanText.split(/\s+/) : [];
+    metadata.wordCount = words.length;
+    metadata.charCount = extractedText.length;
+    metadata.paragraphCount = extractedText.split(/\n\s*\n/).filter(p => p.trim().length > 0).length;
+
+    return res.json({
+      success: true,
+      text: extractedText,
+      metadata
+    });
+  } catch (err: any) {
+    console.error('File text extraction failed:', err);
+    return res.status(500).json({ 
+      success: false, 
+      error: err.message || 'An error occurred during text extraction.' 
     });
   }
 });

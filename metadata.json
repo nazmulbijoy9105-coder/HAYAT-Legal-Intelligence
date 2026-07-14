@@ -1,0 +1,6 @@
+{
+  "name": "HAYAT Legal Intelligence",
+  "description": "Hierarchical AI Taxonomy & Deterministic Reasoning System for Bangladesh Law, featuring hybrid research, the ILRMF legal reasoning engine, and visual OCR ingestion sandbox.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
